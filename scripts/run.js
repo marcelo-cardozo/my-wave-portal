@@ -1,14 +1,29 @@
 const main = async () => {
+  const [owner, randomPerson] = await hre.ethers.getSigners();
+
   // compile contract and generate files to work with the contract
   const waveContractFactory = await hre.ethers.getContractFactory("WavePortal");
-
-  // create new local ethereum network to deploy this contract
+  // create new local ethereum network to deploy this contract and deploy contract
   const waveContract = await waveContractFactory.deploy();
-
-  // deploy contract to hardhat ethereum network
+  // wait for contract deployment to hardhat ethereum network
   await waveContract.deployed();
 
-  console.log("Contract deployed to:", waveContract.address);
+  console.log("Contract deployed  to:", waveContract.address);
+  console.log("Contract deployed  by:", owner.address);
+  console.log("Random person address:", randomPerson.address);
+
+  let waveCount;
+  waveCount = await waveContract.getTotalWaves();
+
+  let waveTxn = await waveContract.wave();
+  await waveTxn.wait();
+
+  waveCount = await waveContract.getTotalWaves();
+
+  waveTxn = await waveContract.connect(randomPerson).wave();
+  await waveTxn.wait();
+
+  waveCount = await waveContract.getTotalWaves();
 };
 
 const runMain = async () => {
