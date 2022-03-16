@@ -6,6 +6,7 @@ import "hardhat/console.sol";
 
 contract WavePortal {
     // automatically initialized to 0, "state variable", it's stored permanently in contract storage
+    mapping(address => uint256) waveByAddress;
     uint256 totalWaves;
 
     constructor() {
@@ -15,12 +16,18 @@ contract WavePortal {
     }
 
     function wave() public {
+        waveByAddress[msg.sender] += 1;
         totalWaves += 1;
         console.log("%s has waved!", msg.sender);
     }
 
     function getTotalWaves() public view returns (uint256) {
-        console.log("We have %d total waves!", totalWaves);
+        console.log("%d times waved", totalWaves);
         return totalWaves;
+    }
+
+    function getMyTotalWaves() public view returns (uint256) {
+        console.log("%s has waved %d times", msg.sender, waveByAddress[msg.sender]);
+        return waveByAddress[msg.sender];
     }
 }
