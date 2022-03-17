@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import abi from "./utils/WavePortal.json";
 import "./App.css";
+
+const contractAddress = "0x5Aa4FAf0bff262d467963E91255220e6DD6976ba";
+const contractABI = abi.abi;
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState();
@@ -59,7 +63,28 @@ export default function App() {
     checkIfWalletIsConnected();
   }, []);
 
-  const wave = () => {};
+  const wave = async () => {
+    try {
+      const { ethereum } = window;
+
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
+
+        let count = await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());
+      } else {
+        console.log("Ethereum object doesn't exist!");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div className="mainContainer">
