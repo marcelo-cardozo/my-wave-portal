@@ -4,8 +4,10 @@ coverage
 coverage.json
 typechain
 
+
 #Hardhat files
 cache
 artifacts
 .vscode
+hardhat.config.js
 hardhat.config.js
