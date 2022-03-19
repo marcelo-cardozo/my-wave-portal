@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useConnectWallet } from "./hooks/use-connect-wallet.hook";
 import { useSendWave } from "./hooks/use-send-wave.hook";
+import { useWavePortalContract } from "./hooks/use-waveportal-contract.hook";
 
 import "./App.css";
-import { useWavePortalContract } from "./hooks/use-waveportal-contract.hook";
 
 export default function App() {
   const [totalWaves, setTotalWaves] = useState();
@@ -22,14 +22,26 @@ export default function App() {
   useEffect(() => {
     function onNewWave(from, message, timestamp) {
       console.log("NewWave", from, message, timestamp);
-      setAllWaves((prevState) => [
-        ...prevState,
-        {
-          message,
-          address: from,
-          timestamp: new Date(timestamp.toNumber() * 1000),
-        },
-      ]);
+      setAllWaves((prevState) => {
+        if (
+          prevState.find(
+            (wave) =>
+              wave.message === message &&
+              wave.address === from &&
+              wave.timestamp === timestamp.toNumber()
+          )
+        )
+          return prevState;
+
+        return [
+          ...prevState,
+          {
+            message,
+            address: from,
+            timestamp: timestamp.toNumber(),
+          },
+        ];
+      });
     }
 
     async function initVariables() {
@@ -46,7 +58,7 @@ export default function App() {
           allWavesResponse.map((wave) => ({
             message: wave.message,
             address: wave.waver,
-            timestamp: new Date(wave.timestamp.toNumber() * 1000),
+            timestamp: wave.timestamp.toNumber(),
           }))
         );
 
@@ -64,6 +76,7 @@ export default function App() {
     };
   }, [wavePortalContract]);
 
+  console.log({ allWaves });
   return (
     <div className="mainContainer">
       <div className="dataContainer">
@@ -73,34 +86,53 @@ export default function App() {
           </span>{" "}
           Hey there!
         </div>
-
         <div className="bio">
           I am Chelo and I work on Front end development, connect your Ethereum
           wallet and wave at me!
         </div>
-
-        {totalWaves != null ? (
+        {totalWaves ? (
           <div className="bio">I have received {totalWaves} waves</div>
         ) : null}
-
-        {isLoading || isRequestingTransaction ? (
-          <div className="loader"></div>
-        ) : (
-          <button className="waveButton" onClick={sendWave}>
-            Wave at Me
-          </button>
-        )}
-
         {isRequestingTransaction ? (
-          <div className="bio">
+          <div className="bio" style={{ fontWeight: 700 }}>
             An approval is required to proceed with the transaction...
           </div>
         ) : null}
-
-        {currentAccount === null && (
+        {currentAccount === null ? (
           <button className="waveButton" onClick={connectWallet}>
             Connect Wallet
           </button>
+        ) : (
+          <form
+            style={{ display: "flex", flexDirection: "column" }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendWave(e.target.message.value);
+              e.target.message.value = "";
+            }}
+          >
+            {isLoading || isRequestingTransaction ? (
+              <div className="loader"></div>
+            ) : null}
+            <input
+              style={{
+                marginTop: 16,
+                border: "1px gray solid",
+                borderRadius: 4,
+                lineHeight: "1.5rem",
+              }}
+              type="text"
+              name="message"
+              disabled={isLoading || isRequestingTransaction}
+            />
+            <button
+              className="waveButton"
+              type="submit"
+              disabled={isLoading || isRequestingTransaction}
+            >
+              Wave at Me
+            </button>
+          </form>
         )}
 
         <h3 style={{ display: "flex", alignItems: "center" }}>
@@ -109,39 +141,45 @@ export default function App() {
             🌊🌊🌊
           </span>{" "}
         </h3>
-        {allWaves.map((wave, index) => {
-          return (
-            <div
-              key={`${wave.address}_${wave.timestamp.getTime()}`}
-              style={{
-                backgroundColor: "OldLace",
-                marginTop: index > 0 ? "16px" : undefined,
-                padding: "8px",
-                borderRadius: "5px",
-              }}
-            >
+        {allWaves.length === 0 ? (
+          <p className="bio">
+            Be the first to wave at me, an instant reward is awaiting you!
+          </p>
+        ) : (
+          allWaves.map((wave, index) => {
+            return (
               <div
+                key={`${wave.address}_${wave.timestamp.getTime()}`}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderBottom: "1px gray solid",
-                  padding: "16px 4px",
-                  color: "gray",
-                  fontWeight: 700,
+                  backgroundColor: "OldLace",
+                  marginTop: index > 0 ? "16px" : undefined,
+                  padding: "8px",
+                  borderRadius: "5px",
                 }}
               >
-                <span>{wave.address}</span>
-                <span style={{ fontSize: "0.85rem" }}>
-                  {new Intl.DateTimeFormat([], {
-                    dateStyle: "medium",
-                  }).format(wave.timestamp)}
-                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: "1px gray solid",
+                    padding: "16px 4px",
+                    color: "gray",
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>{wave.address}</span>
+                  <span style={{ fontSize: "0.85rem" }}>
+                    {new Intl.DateTimeFormat([], {
+                      dateStyle: "medium",
+                    }).format(new Date(wave.timestamp * 1000))}
+                  </span>
+                </div>
+                <div style={{ padding: "16px 4px" }}>{wave.message}</div>
               </div>
-              <div style={{ padding: "16px 4px" }}>{wave.message}</div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
