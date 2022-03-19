@@ -6,19 +6,34 @@ import "hardhat/console.sol";
 
 contract WavePortal {
     // automatically initialized to 0, "state variable", it's stored permanently in contract storage
-    mapping(address => uint256) waveByAddress;
+    mapping(address => uint256) waveCountByAddress;
     uint256 totalWaves;
-
-    constructor() {
-        console.log(
-            "Hey hey hey, you might be a contract but you are not smart ;)"
-        );
+    event NewWave(address indexed from, string message, uint256 timestamp);
+    
+    struct Wave {
+        address waver; // The address of the user who waved.
+        string message; // The message the user sent.
+        uint256 timestamp; // The timestamp when the user waved.
     }
 
-    function wave() public {
-        waveByAddress[msg.sender] += 1;
+    Wave[] waves;
+
+    constructor() {
+        console.log("this is the contract constructor");
+    }
+
+    function wave(string memory _message) public {
+        console.log("%s waved w/ message %s", msg.sender, _message);
+
+        waveCountByAddress[msg.sender] += 1;
         totalWaves += 1;
-        console.log("%s has waved!", msg.sender);
+        
+        waves.push(Wave(msg.sender, _message, block.timestamp));
+        emit NewWave(msg.sender, _message, block.timestamp);
+    }
+
+    function getAllWaves() public view returns (Wave[] memory){
+        return waves;
     }
 
     function getTotalWaves() public view returns (uint256) {
@@ -27,7 +42,7 @@ contract WavePortal {
     }
 
     function getMyTotalWaves() public view returns (uint256) {
-        console.log("%s has waved %d times", msg.sender, waveByAddress[msg.sender]);
-        return waveByAddress[msg.sender];
+        console.log("%s has waved %d times", msg.sender, waveCountByAddress[msg.sender]);
+        return waveCountByAddress[msg.sender];
     }
 }
