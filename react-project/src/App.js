@@ -76,7 +76,6 @@ export default function App() {
     };
   }, [wavePortalContract]);
 
-  console.log({ allWaves });
   return (
     <div className="mainContainer">
       <div className="dataContainer">
@@ -87,12 +86,18 @@ export default function App() {
           Hey there!
         </div>
         <div className="bio">
-          I am Chelo and I work on Front end development, connect your Ethereum
+          I am Chelo and I work as a Front end developer, connect your Ethereum
           wallet and wave at me!
         </div>
         {totalWaves ? (
           <div className="bio">I have received {totalWaves} waves</div>
         ) : null}
+
+        <div className="bio">
+          <span style={{ fontWeight: 700 }}>Note: </span> the contract is
+          deployed in the Rinkeby Test Network, so make sure to select it in
+          Metamask!
+        </div>
         {isRequestingTransaction ? (
           <div className="bio" style={{ fontWeight: 700 }}>
             An approval is required to proceed with the transaction...
@@ -149,7 +154,7 @@ export default function App() {
           allWaves.map((wave, index) => {
             return (
               <div
-                key={`${wave.address}_${wave.timestamp.getTime()}`}
+                key={`${wave.address}_${wave.timestamp}`}
                 style={{
                   backgroundColor: "OldLace",
                   marginTop: index > 0 ? "16px" : undefined,

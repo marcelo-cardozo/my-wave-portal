@@ -16,6 +16,6 @@
 - Update `hardhat.config.js` with the actual rinkeby url and ethereum account
 - Run `npx hardhat run scripts/deploy.js --network rinkeby`
 - Select rinkeby network in metamask
-- Update contract address inside `App.js`
+- Update contract address inside `WavePortal.constants.js`
 - Update contract `abi` with the generated json located at `artifacts/contracts/WavePorta.sol/WavePortal.json`
 - To run the ReactJS application execute `npm start` inside `react-project` folder

@@ -1,5 +1,5 @@
 import abi from "./WavePortal.json";
 
 export const wavePortalContractAddress =
-  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  "0x83BE38c1D81194A703479E763faddF54df54C8c1";
 export const wavePortalContractABI = abi.abi;
