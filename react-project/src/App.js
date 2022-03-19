@@ -3,12 +3,13 @@ import { ethers } from "ethers";
 import abi from "./utils/WavePortal.json";
 import "./App.css";
 
-const contractAddress = "0x5Aa4FAf0bff262d467963E91255220e6DD6976ba";
+const contractAddress = "0x9FfF59eA0dC71f8b32a39D5271dB1980B514bffa";
 const contractABI = abi.abi;
 
 export default function App() {
   const [currentAccount, setCurrentAccount] = useState();
   const [totalWaves, setTotalWaves] = useState();
+  const [allWaves, setAllWaves] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRequestingTransaction, setIsRequestingTransaction] = useState(false);
 
@@ -67,7 +68,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const getTotalWaves = async () => {
+    const setupVariables = async () => {
       try {
         const { ethereum } = window;
 
@@ -80,9 +81,24 @@ export default function App() {
             signer
           );
 
-          let count = await wavePortalContract.getTotalWaves();
-          setTotalWaves(count.toNumber());
-          console.log("Retrieved total wave count...", count.toNumber());
+          let [{ value: countResponse }, { value: allWavesResponse }] =
+            await Promise.allSettled([
+              wavePortalContract.getTotalWaves(),
+              wavePortalContract.getAllWaves(),
+            ]);
+
+          setTotalWaves(countResponse.toNumber());
+          console.log(
+            "Retrieved total wave count...",
+            countResponse.toNumber()
+          );
+          setAllWaves(
+            allWavesResponse.map((wave) => ({
+              message: wave.message,
+              address: wave.waver,
+              timestamp: new Date(wave.timestamp.toNumber() * 1000),
+            }))
+          );
         } else {
           console.log("Ethereum object doesn't exist!");
         }
@@ -90,7 +106,7 @@ export default function App() {
         console.log(error);
       }
     };
-    if (currentAccount) getTotalWaves();
+    if (currentAccount) setupVariables();
   }, [currentAccount]);
 
   const wave = async () => {
@@ -113,7 +129,7 @@ export default function App() {
          * Execute the actual wave from your smart contract
          */
         setIsRequestingTransaction(true);
-        const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave("message");
         setIsRequestingTransaction(false);
         console.log("Mining...", waveTxn.hash);
 
@@ -173,6 +189,24 @@ export default function App() {
             Connect Wallet
           </button>
         )}
+
+        <h3 style={{ marginBottom: -8 }}>Waves</h3>
+        {allWaves.map((wave, index) => {
+          return (
+            <div
+              key={`${wave.address}_${wave.timestamp.toString()}`}
+              style={{
+                backgroundColor: "OldLace",
+                marginTop: "16px",
+                padding: "8px",
+              }}
+            >
+              <div>Address: {wave.address}</div>
+              <div>Time: {wave.timestamp.toString()}</div>
+              <div>Message: {wave.message}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
