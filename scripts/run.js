@@ -49,20 +49,26 @@ const main = async () => {
     )
   );
 
-  waveTxn = await waveContract.wave("message 1.2");
-  await waveTxn.wait();
+  try {
+    waveTxn = await waveContract.wave("message 1.2");
+    await waveTxn.wait();
 
-  contractBalance = await hre.ethers.provider.getBalance(waveContract.address);
-  console.log(
-    "Contract balance:",
-    hre.ethers.utils.formatEther(contractBalance)
-  );
-  console.log(
-    "My balance:",
-    hre.ethers.utils.formatEther(
-      await hre.ethers.provider.getBalance(owner.address)
-    )
-  );
+    contractBalance = await hre.ethers.provider.getBalance(
+      waveContract.address
+    );
+    console.log(
+      "Contract balance:",
+      hre.ethers.utils.formatEther(contractBalance)
+    );
+    console.log(
+      "My balance:",
+      hre.ethers.utils.formatEther(
+        await hre.ethers.provider.getBalance(owner.address)
+      )
+    );
+  } catch (error) {
+    console.log(error.message);
+  }
 
   waveTotalCount = await waveContract.getTotalWaves();
 
