@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import abi from "./utils/WavePortal.json";
 import "./App.css";
 
-const contractAddress = "0x7937123D0111C4176fD65CF229C513fE688fd368";
+const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 const contractABI = abi.abi;
 
 export default function App() {
@@ -26,6 +26,7 @@ export default function App() {
       }
 
       const accounts = await ethereum.request({ method: "eth_accounts" });
+      console.log({ accounts });
 
       if (accounts.length !== 0) {
         const account = accounts[0];
@@ -56,6 +57,7 @@ export default function App() {
         method: "eth_requestAccounts",
       });
 
+      console.log({ accounts });
       console.log("Connected", accounts[0]);
       setCurrentAccount(accounts[0]);
     } catch (error) {
@@ -68,14 +70,29 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const setupVariables = async () => {
+    let wavePortalContract;
+
+    function onNewWave(from, message, timestamp) {
+      console.log("NewWave", from, message, timestamp);
+      setAllWaves((prevState) => [
+        ...prevState,
+        {
+          message,
+          address: from,
+          timestamp: new Date(timestamp.toNumber() * 1000),
+        },
+      ]);
+    }
+
+    async function setupVariables() {
       try {
         const { ethereum } = window;
 
         if (ethereum) {
           const provider = new ethers.providers.Web3Provider(ethereum);
           const signer = provider.getSigner();
-          const wavePortalContract = new ethers.Contract(
+
+          wavePortalContract = new ethers.Contract(
             contractAddress,
             contractABI,
             signer
@@ -99,14 +116,27 @@ export default function App() {
               timestamp: new Date(wave.timestamp.toNumber() * 1000),
             }))
           );
+
+          wavePortalContract = new ethers.Contract(
+            contractAddress,
+            contractABI,
+            signer
+          );
+          wavePortalContract.on("NewWave", onNewWave);
         } else {
           console.log("Ethereum object doesn't exist!");
         }
       } catch (error) {
         console.log(error);
       }
-    };
+    }
     if (currentAccount) setupVariables();
+
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off("NewWave", onNewWave);
+      }
+    };
   }, [currentAccount]);
 
   const wave = async () => {
@@ -129,7 +159,9 @@ export default function App() {
          * Execute the actual wave from your smart contract
          */
         setIsRequestingTransaction(true);
-        const waveTxn = await wavePortalContract.wave("message");
+        const waveTxn = await wavePortalContract.wave("message", {
+          gasLimit: 300_000,
+        });
         setIsRequestingTransaction(false);
         console.log("Mining...", waveTxn.hash);
 
@@ -151,6 +183,8 @@ export default function App() {
       setIsRequestingTransaction(false);
     }
   };
+
+  console.log({ allWaves });
   return (
     <div className="mainContainer">
       <div className="dataContainer">
@@ -199,7 +233,7 @@ export default function App() {
         {allWaves.map((wave, index) => {
           return (
             <div
-              key={`${wave.address}_${wave.timestamp.toString()}`}
+              key={`${wave.address}_${wave.timestamp.getTime()}`}
               style={{
                 backgroundColor: "OldLace",
                 marginTop: index > 0 ? "16px" : undefined,
