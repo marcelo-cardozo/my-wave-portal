@@ -9,7 +9,7 @@ contract WavePortal {
     mapping(address => uint256) waveCountByAddress;
     uint256 totalWaves;
     event NewWave(address indexed from, string message, uint256 timestamp);
-    
+
     struct Wave {
         address waver; // The address of the user who waved.
         string message; // The message the user sent.
@@ -18,7 +18,7 @@ contract WavePortal {
 
     Wave[] waves;
 
-    constructor() {
+    constructor() payable {
         console.log("this is the contract constructor");
     }
 
@@ -27,12 +27,20 @@ contract WavePortal {
 
         waveCountByAddress[msg.sender] += 1;
         totalWaves += 1;
-        
+
         waves.push(Wave(msg.sender, _message, block.timestamp));
         emit NewWave(msg.sender, _message, block.timestamp);
+
+        uint256 prizeAmount = 0.0001 ether;
+        require(
+            prizeAmount <= address(this).balance,
+            "Trying to withdraw more money than the contract has."
+        );
+        (bool success, ) = (msg.sender).call{value: prizeAmount}("");
+        require(success, "Failed to withdraw money from contract.");
     }
 
-    function getAllWaves() public view returns (Wave[] memory){
+    function getAllWaves() public view returns (Wave[] memory) {
         return waves;
     }
 
@@ -42,7 +50,11 @@ contract WavePortal {
     }
 
     function getMyTotalWaves() public view returns (uint256) {
-        console.log("%s has waved %d times", msg.sender, waveCountByAddress[msg.sender]);
+        console.log(
+            "%s has waved %d times",
+            msg.sender,
+            waveCountByAddress[msg.sender]
+        );
         return waveCountByAddress[msg.sender];
     }
 }
