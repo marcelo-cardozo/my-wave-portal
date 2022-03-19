@@ -1,77 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import abi from "./utils/WavePortal.json";
-import "./App.css";
+import { useConnectWallet } from "./hooks/use-connect-wallet.hook";
+import { useSendWave } from "./hooks/use-send-wave.hook";
 
-const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const contractABI = abi.abi;
+import "./App.css";
+import { useWavePortalContract } from "./hooks/use-waveportal-contract.hook";
 
 export default function App() {
-  const [currentAccount, setCurrentAccount] = useState();
   const [totalWaves, setTotalWaves] = useState();
   const [allWaves, setAllWaves] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRequestingTransaction, setIsRequestingTransaction] = useState(false);
+  const { connectWallet, currentAccount } = useConnectWallet();
+  const { isLoading, isRequestingTransaction, sendWave } = useSendWave({
+    onSuccess: async (contract) => {
+      const count = await contract.getTotalWaves();
+      console.log("Retrieved total wave count...", count.toNumber());
+      setTotalWaves(count.toNumber());
+    },
+  });
 
-  const checkIfWalletIsConnected = async () => {
-    try {
-      const { ethereum } = window;
-
-      if (!ethereum) {
-        console.log("Make sure you have metamask!");
-        setCurrentAccount(null);
-        return;
-      } else {
-        console.log("We have the ethereum object", ethereum);
-      }
-
-      const accounts = await ethereum.request({ method: "eth_accounts" });
-      console.log({ accounts });
-
-      if (accounts.length !== 0) {
-        const account = accounts[0];
-        console.log("Found an authorized account:", account);
-        setCurrentAccount(account);
-      } else {
-        console.log("No authorized account found");
-        setCurrentAccount(null);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  /**
-   * Implement your connectWallet method here
-   */
-  const connectWallet = async () => {
-    try {
-      const { ethereum } = window;
-
-      if (!ethereum) {
-        alert("Get MetaMask!");
-        return;
-      }
-
-      const accounts = await ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      console.log({ accounts });
-      console.log("Connected", accounts[0]);
-      setCurrentAccount(accounts[0]);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const { wavePortalContract } = useWavePortalContract();
 
   useEffect(() => {
-    checkIfWalletIsConnected();
-  }, []);
-
-  useEffect(() => {
-    let wavePortalContract;
-
     function onNewWave(from, message, timestamp) {
       console.log("NewWave", from, message, timestamp);
       setAllWaves((prevState) => [
@@ -84,107 +32,38 @@ export default function App() {
       ]);
     }
 
-    async function setupVariables() {
+    async function initVariables() {
       try {
-        const { ethereum } = window;
+        let [{ value: countResponse }, { value: allWavesResponse }] =
+          await Promise.allSettled([
+            wavePortalContract.getTotalWaves(),
+            wavePortalContract.getAllWaves(),
+          ]);
 
-        if (ethereum) {
-          const provider = new ethers.providers.Web3Provider(ethereum);
-          const signer = provider.getSigner();
+        setTotalWaves(countResponse.toNumber());
+        console.log("Retrieved total wave count...", countResponse.toNumber());
+        setAllWaves(
+          allWavesResponse.map((wave) => ({
+            message: wave.message,
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp.toNumber() * 1000),
+          }))
+        );
 
-          wavePortalContract = new ethers.Contract(
-            contractAddress,
-            contractABI,
-            signer
-          );
-
-          let [{ value: countResponse }, { value: allWavesResponse }] =
-            await Promise.allSettled([
-              wavePortalContract.getTotalWaves(),
-              wavePortalContract.getAllWaves(),
-            ]);
-
-          setTotalWaves(countResponse.toNumber());
-          console.log(
-            "Retrieved total wave count...",
-            countResponse.toNumber()
-          );
-          setAllWaves(
-            allWavesResponse.map((wave) => ({
-              message: wave.message,
-              address: wave.waver,
-              timestamp: new Date(wave.timestamp.toNumber() * 1000),
-            }))
-          );
-
-          wavePortalContract = new ethers.Contract(
-            contractAddress,
-            contractABI,
-            signer
-          );
-          wavePortalContract.on("NewWave", onNewWave);
-        } else {
-          console.log("Ethereum object doesn't exist!");
-        }
+        wavePortalContract.on("NewWave", onNewWave);
       } catch (error) {
         console.log(error);
       }
     }
-    if (currentAccount) setupVariables();
+    if (wavePortalContract) initVariables();
 
     return () => {
       if (wavePortalContract) {
         wavePortalContract.off("NewWave", onNewWave);
       }
     };
-  }, [currentAccount]);
+  }, [wavePortalContract]);
 
-  const wave = async () => {
-    try {
-      const { ethereum } = window;
-
-      if (ethereum) {
-        const provider = new ethers.providers.Web3Provider(ethereum);
-        const signer = provider.getSigner();
-        const wavePortalContract = new ethers.Contract(
-          contractAddress,
-          contractABI,
-          signer
-        );
-
-        let count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-
-        /*
-         * Execute the actual wave from your smart contract
-         */
-        setIsRequestingTransaction(true);
-        const waveTxn = await wavePortalContract.wave("message", {
-          gasLimit: 300_000,
-        });
-        setIsRequestingTransaction(false);
-        console.log("Mining...", waveTxn.hash);
-
-        setIsLoading(true);
-        await waveTxn.wait();
-        setIsLoading(false);
-        console.log("Mined -- ", waveTxn.hash);
-
-        count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
-
-        setTotalWaves(count.toNumber());
-      } else {
-        console.log("Ethereum object doesn't exist!");
-      }
-    } catch (error) {
-      console.log(error);
-      setIsLoading(false);
-      setIsRequestingTransaction(false);
-    }
-  };
-
-  console.log({ allWaves });
   return (
     <div className="mainContainer">
       <div className="dataContainer">
@@ -207,7 +86,7 @@ export default function App() {
         {isLoading || isRequestingTransaction ? (
           <div className="loader"></div>
         ) : (
-          <button className="waveButton" onClick={wave}>
+          <button className="waveButton" onClick={sendWave}>
             Wave at Me
           </button>
         )}
