@@ -190,20 +190,42 @@ export default function App() {
           </button>
         )}
 
-        <h3 style={{ marginBottom: -8 }}>Waves</h3>
+        <h3 style={{ display: "flex", alignItems: "center" }}>
+          Waves{" "}
+          <span role="img" aria-label="Waves" style={{ marginLeft: 8 }}>
+            🌊🌊🌊
+          </span>{" "}
+        </h3>
         {allWaves.map((wave, index) => {
           return (
             <div
               key={`${wave.address}_${wave.timestamp.toString()}`}
               style={{
                 backgroundColor: "OldLace",
-                marginTop: "16px",
+                marginTop: index > 0 ? "16px" : undefined,
                 padding: "8px",
+                borderRadius: "5px",
               }}
             >
-              <div>Address: {wave.address}</div>
-              <div>Time: {wave.timestamp.toString()}</div>
-              <div>Message: {wave.message}</div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px gray solid",
+                  padding: "16px 4px",
+                  color: "gray",
+                  fontWeight: 700,
+                }}
+              >
+                <span>{wave.address}</span>
+                <span style={{ fontSize: "0.85rem" }}>
+                  {new Intl.DateTimeFormat([], {
+                    dateStyle: "medium",
+                  }).format(wave.timestamp)}
+                </span>
+              </div>
+              <div style={{ padding: "16px 4px" }}>{wave.message}</div>
             </div>
           );
         })}
