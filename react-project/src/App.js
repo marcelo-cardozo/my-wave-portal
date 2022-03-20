@@ -67,14 +67,14 @@ export default function App() {
         console.log(error);
       }
     }
-    if (wavePortalContract) initVariables();
+    if (wavePortalContract && currentAccount) initVariables();
 
     return () => {
       if (wavePortalContract) {
         wavePortalContract.off("NewWave", onNewWave);
       }
     };
-  }, [wavePortalContract]);
+  }, [wavePortalContract, currentAccount]);
 
   return (
     <div className="mainContainer">
